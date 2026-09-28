@@ -465,37 +465,298 @@ const initialTechStack = [
   },
 ];
 
+const initialInquiries = [
+  {
+    id: 1,
+    name: 'Tareq Mansur',
+    email: 'tareq@globalbrand.com',
+    company: 'Global Retail Group',
+    service: 'Extended Reality (XR)',
+    budget: '$15,000 - $30,000',
+    timeline: '8 - 12 Weeks',
+    message: 'We are looking to develop a flagship WebAR 3D jewelry and watch configurator for our nationwide retail stores.',
+    status: 'new',
+    created_at: '2026-09-28 10:15:00',
+  },
+  {
+    id: 2,
+    name: 'Saima Chowdhury',
+    email: 'saima@dhakatech.io',
+    company: 'Dhaka Tech Ventures',
+    service: 'Game Development',
+    budget: '$5,000 - $15,000',
+    timeline: '4 - 6 Weeks',
+    message: 'Requesting consultation on building a multiplayer Kinect motion simulator for an upcoming tech expo at BICC.',
+    status: 'contacted',
+    created_at: '2026-09-27 16:40:00',
+  },
+  {
+    id: 3,
+    name: 'Kamrul Hasan',
+    email: 'k.hasan@aerotech.aero',
+    company: 'AeroTech Systems',
+    service: 'Enterprise Web & Cloud Platforms',
+    budget: '$30,000+',
+    timeline: '12+ Weeks',
+    message: 'Seeking enterprise architecture for flight telemetry and 3D digital twin maintenance logging with Laravel and React.',
+    status: 'completed',
+    created_at: '2026-09-25 11:20:00',
+  },
+];
+
+const getStored = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : fallback;
+  } catch (e) {
+    console.error('Error reading localStorage for', key, e);
+    return fallback;
+  }
+};
+
+const setStored = (key, val) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch (e) {
+    console.error('Error saving localStorage for', key, e);
+  }
+};
+
 function StandaloneApp() {
   const [currentView, setCurrentView] = useState('home');
+
+  const [services, setServices] = useState(() => getStored('lab_ar_services', initialServices));
+  const [projects, setProjects] = useState(() => getStored('lab_ar_projects', initialProjects));
+  const [clients, setClients] = useState(() => getStored('lab_ar_clients', initialClients));
+  const [teamMembers, setTeamMembers] = useState(() => getStored('lab_ar_team', initialTeam));
+  const [stats, setStats] = useState(() => getStored('lab_ar_stats', initialStats));
+  const [studioInfo, setStudioInfo] = useState(() => getStored('lab_ar_studio', initialStudioInfo));
+  const [inquiries, setInquiries] = useState(() => getStored('lab_ar_inquiries', initialInquiries));
 
   // Intercept links to /admin or #admin
   useEffect(() => {
     const handleHash = () => {
-      if (window.location.hash === '#admin') {
+      const hash = window.location.hash;
+      const pathname = window.location.pathname;
+      if (hash === '#admin' || pathname.endsWith('/admin') || pathname.endsWith('/admin/')) {
         setCurrentView('admin');
-      } else if (window.location.pathname.endsWith('/admin')) {
-        setCurrentView('admin');
+        window.scrollTo(0, 0);
       } else {
         setCurrentView('home');
       }
     };
     handleHash();
     window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', handleHash);
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('popstate', handleHash);
+    };
   }, []);
 
-  return (
-    <div>
-      <Home
-        services={initialServices}
-        projects={initialProjects}
-        techStack={initialTechStack}
-        clients={initialClients}
-        teamMembers={initialTeam}
-        stats={initialStats}
-        studioInfo={initialStudioInfo}
+  // CRUD Handlers for Team Members
+  const handleSaveMember = (memberData) => {
+    setTeamMembers((prev) => {
+      let updated;
+      const exists = prev.some((m) => m.id === memberData.id);
+      if (exists) {
+        updated = prev.map((m) => (m.id === memberData.id ? { ...m, ...memberData } : m));
+      } else {
+        const newMember = {
+          ...memberData,
+          id: memberData.id || `member-${Date.now()}`,
+          skills: Array.isArray(memberData.skills)
+            ? memberData.skills
+            : typeof memberData.skills === 'string'
+            ? memberData.skills.split(',').map((s) => s.trim()).filter(Boolean)
+            : ['XR Technologist'],
+        };
+        updated = [newMember, ...prev];
+      }
+      setStored('lab_ar_team', updated);
+      return updated;
+    });
+  };
+
+  const handleDeleteMember = (id) => {
+    setTeamMembers((prev) => {
+      const updated = prev.filter((m) => m.id !== id);
+      setStored('lab_ar_team', updated);
+      return updated;
+    });
+  };
+
+  // CRUD Handlers for Clients
+  const handleSaveClient = (clientData) => {
+    setClients((prev) => {
+      let updated;
+      const exists = prev.some((c) => c.id === clientData.id);
+      if (exists) {
+        updated = prev.map((c) => (c.id === clientData.id ? { ...c, ...clientData } : c));
+      } else {
+        const newClient = {
+          ...clientData,
+          id: clientData.id || `client-${Date.now()}`,
+        };
+        updated = [newClient, ...prev];
+      }
+      setStored('lab_ar_clients', updated);
+      return updated;
+    });
+  };
+
+  const handleDeleteClient = (id) => {
+    setClients((prev) => {
+      const updated = prev.filter((c) => c.id !== id);
+      setStored('lab_ar_clients', updated);
+      return updated;
+    });
+  };
+
+  // CRUD Handlers for Projects
+  const handleSaveProject = (projectData) => {
+    setProjects((prev) => {
+      let updated;
+      const exists = prev.some((p) => p.id === projectData.id);
+      if (exists) {
+        updated = prev.map((p) => (p.id === projectData.id ? { ...p, ...projectData } : p));
+      } else {
+        const newProject = {
+          ...projectData,
+          id: projectData.id || `proj-${Date.now()}`,
+          results: Array.isArray(projectData.results)
+            ? projectData.results
+            : typeof projectData.results === 'string'
+            ? projectData.results.split('\n').map((r) => r.trim()).filter(Boolean)
+            : [],
+          tech: Array.isArray(projectData.tech)
+            ? projectData.tech
+            : typeof projectData.tech === 'string'
+            ? projectData.tech.split(',').map((t) => t.trim()).filter(Boolean)
+            : [],
+        };
+        updated = [newProject, ...prev];
+      }
+      setStored('lab_ar_projects', updated);
+      return updated;
+    });
+  };
+
+  const handleDeleteProject = (id) => {
+    setProjects((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      setStored('lab_ar_projects', updated);
+      return updated;
+    });
+  };
+
+  // CRUD Handlers for Services
+  const handleSaveService = (serviceData) => {
+    setServices((prev) => {
+      let updated;
+      const exists = prev.some((s) => s.id === serviceData.id);
+      if (exists) {
+        updated = prev.map((s) => (s.id === serviceData.id ? { ...s, ...serviceData } : s));
+      } else {
+        const newService = {
+          ...serviceData,
+          id: serviceData.id || `service-${Date.now()}`,
+          features: Array.isArray(serviceData.features)
+            ? serviceData.features
+            : typeof serviceData.features === 'string'
+            ? serviceData.features.split('\n').map((f) => f.trim()).filter(Boolean)
+            : [],
+          tech: Array.isArray(serviceData.tech)
+            ? serviceData.tech
+            : typeof serviceData.tech === 'string'
+            ? serviceData.tech.split(',').map((t) => t.trim()).filter(Boolean)
+            : [],
+        };
+        updated = [newService, ...prev];
+      }
+      setStored('lab_ar_services', updated);
+      return updated;
+    });
+  };
+
+  // Handlers for Studio Settings
+  const handleSaveStudio = (studioData) => {
+    setStudioInfo((prev) => {
+      const updated = { ...prev, ...studioData };
+      setStored('lab_ar_studio', updated);
+      return updated;
+    });
+  };
+
+  // Handlers for Stats
+  const handleSaveStats = (statsData) => {
+    setStats(() => {
+      setStored('lab_ar_stats', statsData);
+      return statsData;
+    });
+  };
+
+  // Handlers for Inquiries
+  const handleUpdateInquiryStatus = (id, newStatus) => {
+    setInquiries((prev) => {
+      const updated = prev.map((inq) => (inq.id === id ? { ...inq, status: newStatus } : inq));
+      setStored('lab_ar_inquiries', updated);
+      return updated;
+    });
+  };
+
+  const handleDeleteInquiry = (id) => {
+    setInquiries((prev) => {
+      const updated = prev.filter((inq) => inq.id !== id);
+      setStored('lab_ar_inquiries', updated);
+      return updated;
+    });
+  };
+
+  const handleBackToSite = () => {
+    window.location.hash = '';
+    setCurrentView('home');
+    window.scrollTo(0, 0);
+  };
+
+  if (currentView === 'admin') {
+    return (
+      <Dashboard
+        teamMembers={teamMembers}
+        clients={clients}
+        projects={projects}
+        services={services}
+        inquiries={inquiries}
+        studioInfo={studioInfo}
+        stats={stats}
+        onSaveMember={handleSaveMember}
+        onDeleteMember={handleDeleteMember}
+        onSaveClient={handleSaveClient}
+        onDeleteClient={handleDeleteClient}
+        onSaveProject={handleSaveProject}
+        onDeleteProject={handleDeleteProject}
+        onSaveService={handleSaveService}
+        onSaveStudio={handleSaveStudio}
+        onSaveStats={handleSaveStats}
+        onUpdateInquiryStatus={handleUpdateInquiryStatus}
+        onDeleteInquiry={handleDeleteInquiry}
+        onBack={handleBackToSite}
       />
-    </div>
+    );
+  }
+
+  return (
+    <Home
+      services={services}
+      projects={projects}
+      techStack={initialTechStack}
+      clients={clients}
+      teamMembers={teamMembers}
+      stats={stats}
+      studioInfo={studioInfo}
+    />
   );
 }
 

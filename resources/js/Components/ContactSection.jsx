@@ -85,6 +85,26 @@ export default function ContactSection({ studioInfo, prefillData }) {
     } catch {}
 
     // Standalone / Static fallback
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('lab_ar_inquiries');
+        const list = stored ? JSON.parse(stored) : [];
+        list.unshift({
+          id: Date.now(),
+          name: data.name,
+          email: data.email,
+          company: data.company,
+          service: data.service,
+          budget: data.budget,
+          timeline: data.timeline,
+          message: data.message,
+          status: 'new',
+          created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        });
+        localStorage.setItem('lab_ar_inquiries', JSON.stringify(list));
+      }
+    } catch {}
+
     setTimeout(() => {
       setSubmittedSuccess(true);
       reset();

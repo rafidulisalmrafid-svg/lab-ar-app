@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { Head, router, usePage } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   Building2, 
@@ -30,6 +29,15 @@ import {
 } from 'lucide-react';
 import { playUiClick, playUiHover } from '../Utils/sound';
 
+const Head = ({ title }) => {
+  useEffect(() => {
+    if (title && typeof document !== 'undefined') {
+      document.title = title;
+    }
+  }, [title]);
+  return null;
+};
+
 export default function Dashboard({
   teamMembers = [],
   clients = [],
@@ -38,13 +46,24 @@ export default function Dashboard({
   inquiries = [],
   studioInfo = {},
   stats = [],
+  onSaveMember,
+  onDeleteMember,
+  onSaveClient,
+  onDeleteClient,
+  onSaveProject,
+  onDeleteProject,
+  onSaveService,
+  onSaveStudio,
+  onSaveStats,
+  onUpdateInquiryStatus,
+  onDeleteInquiry,
+  onBack,
 }) {
-  const { flash } = usePage().props;
   const [activeTab, setActiveTab] = useState('overview');
-  const [notification, setNotification] = useState(flash?.message || null);
+  const [notification, setNotification] = useState(null);
 
   // Modals state
-  const [editingMember, setEditingMember] = useState(null); // null = closed, {} = new, {id...} = edit
+  const [editingMember, setEditingMember] = useState(null);
   const [editingClient, setEditingClient] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
   const [editingService, setEditingService] = useState(null);
@@ -70,43 +89,48 @@ export default function Dashboard({
   const handleStudioSubmit = (e) => {
     e.preventDefault();
     playUiClick();
-    router.post('/admin/settings/studio', studioForm, {
-      onSuccess: () => setNotification('Studio settings saved successfully!'),
-    });
+    if (onSaveStudio) {
+      onSaveStudio(studioForm);
+      setNotification('Studio settings saved successfully!');
+      return;
+    }
+    try {
+      if (typeof window !== 'undefined' && window.__inertia_router) {
+        window.__inertia_router.post('/admin/settings/studio', studioForm, {
+          onSuccess: () => setNotification('Studio settings saved successfully!'),
+        });
+      }
+    } catch {}
   };
 
   const handleStatsSubmit = (e) => {
     e.preventDefault();
     playUiClick();
-    router.post('/admin/settings/stats', { stats: statsForm }, {
-      onSuccess: () => setNotification('Stats updated successfully!'),
-    });
+    if (onSaveStats) {
+      onSaveStats(statsForm);
+      setNotification('Stats updated successfully!');
+      return;
+    }
+    try {
+      if (typeof window !== 'undefined' && window.__inertia_router) {
+        window.__inertia_router.post('/admin/settings/stats', { stats: statsForm }, {
+          onSuccess: () => setNotification('Stats updated successfully!'),
+        });
+      }
+    } catch {}
   };
 
   // Upload helper
   const handleFileUpload = async (file, onDone) => {
     if (!file) return;
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-      const res = await fetch('/admin/upload-image', {
-        method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-        },
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        onDone(data.url);
-        setNotification('Image uploaded successfully!');
-      } else {
-        alert(data.message || 'Upload failed');
-      }
-    } catch (err) {
-      alert('Upload failed: ' + err.message);
-    }
+    
+    // In standalone / client mode, read as Data URL for instant live preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      onDone(e.target.result);
+      setNotification('Photo loaded successfully!');
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -117,14 +141,17 @@ export default function Dashboard({
       <header className="sticky top-0 z-40 bg-[#070b1a]/90 backdrop-blur-xl border-b border-cyan-500/20 px-4 sm:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <a
-              href="/"
-              onClick={() => playUiClick()}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-cyan-300 transition-all group"
+            <button
+              onClick={() => {
+                playUiClick();
+                if (onBack) onBack();
+                else window.location.href = '/';
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-cyan-300 transition-all group cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
               <span>Back to Public Site</span>
-            </a>
+            </button>
 
             <div className="h-4 w-px bg-white/10 hidden sm:block" />
 
@@ -152,17 +179,21 @@ export default function Dashboard({
               <span>LIVE DATABASE SYNC</span>
             </div>
 
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => playUiClick()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs transition-all shadow-lg shadow-cyan-500/20"
+            <button
+              type="button"
+              onClick={() => {
+                playUiClick();
+                if (onBack) {
+                  onBack();
+                } else if (typeof window !== 'undefined') {
+                  window.location.hash = '';
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs transition-all shadow-lg shadow-cyan-500/20 cursor-pointer"
             >
               <Eye className="w-3.5 h-3.5" />
               <span>View Live Website</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+            </button>
           </div>
         </div>
       </header>
@@ -494,10 +525,17 @@ export default function Dashboard({
                       <button
                         onClick={() => {
                           if (confirm(`Are you sure you want to delete ${member.name}?`)) {
-                            router.delete(`/admin/team/${member.id}`);
+                            if (onDeleteMember) {
+                              onDeleteMember(member.id);
+                              setNotification(`Member ${member.name} deleted.`);
+                            } else {
+                              try {
+                                if (window.__inertia_router) window.__inertia_router.delete(`/admin/team/${member.id}`);
+                              } catch {}
+                            }
                           }
                         }}
-                        className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all"
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
                         title="Delete Member"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -602,10 +640,17 @@ export default function Dashboard({
                     <button
                       onClick={() => {
                         if (confirm(`Delete client ${client.name}?`)) {
-                          router.delete(`/admin/clients/${client.id}`);
+                          if (onDeleteClient) {
+                            onDeleteClient(client.id);
+                            setNotification(`Client ${client.name} deleted.`);
+                          } else {
+                            try {
+                              if (window.__inertia_router) window.__inertia_router.delete(`/admin/clients/${client.id}`);
+                            } catch {}
+                          }
                         }
                       }}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all"
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
                       title="Delete Client"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -711,10 +756,17 @@ export default function Dashboard({
                     <button
                       onClick={() => {
                         if (confirm(`Delete project ${proj.title}?`)) {
-                          router.delete(`/admin/projects/${proj.id}`);
+                          if (onDeleteProject) {
+                            onDeleteProject(proj.id);
+                            setNotification(`Project ${proj.title} deleted.`);
+                          } else {
+                            try {
+                              if (window.__inertia_router) window.__inertia_router.delete(`/admin/projects/${proj.id}`);
+                            } catch {}
+                          }
                         }
                       }}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all"
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
                       title="Delete Project"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1067,7 +1119,14 @@ export default function Dashboard({
                         <select
                           value={inq.status}
                           onChange={(e) => {
-                            router.post(`/admin/inquiries/${inq.id}/status`, { status: e.target.value });
+                            if (onUpdateInquiryStatus) {
+                              onUpdateInquiryStatus(inq.id, e.target.value);
+                              setNotification(`Inquiry status updated to ${e.target.value}`);
+                            } else {
+                              try {
+                                if (window.__inertia_router) window.__inertia_router.post(`/admin/inquiries/${inq.id}/status`, { status: e.target.value });
+                              } catch {}
+                            }
                           }}
                           className="px-3 py-1.5 rounded-xl bg-black/60 border border-white/10 text-xs font-mono text-cyan-300 outline-none"
                         >
@@ -1080,10 +1139,17 @@ export default function Dashboard({
                         <button
                           onClick={() => {
                             if (confirm(`Delete inquiry from ${inq.name}?`)) {
-                              router.delete(`/admin/inquiries/${inq.id}`);
+                              if (onDeleteInquiry) {
+                                onDeleteInquiry(inq.id);
+                                setNotification('Inquiry deleted.');
+                              } else {
+                                try {
+                                  if (window.__inertia_router) window.__inertia_router.delete(`/admin/inquiries/${inq.id}`);
+                                } catch {}
+                              }
                             }
                           }}
-                          className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all"
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
                           title="Delete Inquiry"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1141,10 +1207,20 @@ export default function Dashboard({
               onSubmit={(e) => {
                 e.preventDefault();
                 playUiClick();
+                if (onSaveMember) {
+                  onSaveMember(editingMember);
+                  setNotification(`Team member ${editingMember.name} saved!`);
+                  setEditingMember(null);
+                  return;
+                }
                 const url = editingMember.id ? `/admin/team/save/${editingMember.id}` : '/admin/team/save';
-                router.post(url, editingMember, {
-                  onSuccess: () => setEditingMember(null),
-                });
+                try {
+                  if (window.__inertia_router) {
+                    window.__inertia_router.post(url, editingMember, {
+                      onSuccess: () => setEditingMember(null),
+                    });
+                  }
+                } catch {}
               }}
               className="space-y-3 text-xs font-mono"
             >
@@ -1361,10 +1437,20 @@ export default function Dashboard({
               onSubmit={(e) => {
                 e.preventDefault();
                 playUiClick();
+                if (onSaveClient) {
+                  onSaveClient(editingClient);
+                  setNotification(`Client ${editingClient.name} saved!`);
+                  setEditingClient(null);
+                  return;
+                }
                 const url = editingClient.id ? `/admin/clients/save/${editingClient.id}` : '/admin/clients/save';
-                router.post(url, editingClient, {
-                  onSuccess: () => setEditingClient(null),
-                });
+                try {
+                  if (window.__inertia_router) {
+                    window.__inertia_router.post(url, editingClient, {
+                      onSuccess: () => setEditingClient(null),
+                    });
+                  }
+                } catch {}
               }}
               className="space-y-3 text-xs font-mono"
             >
@@ -1510,10 +1596,20 @@ export default function Dashboard({
               onSubmit={(e) => {
                 e.preventDefault();
                 playUiClick();
+                if (onSaveProject) {
+                  onSaveProject(editingProject);
+                  setNotification(`Project ${editingProject.title} saved!`);
+                  setEditingProject(null);
+                  return;
+                }
                 const url = editingProject.id ? `/admin/projects/save/${editingProject.id}` : '/admin/projects/save';
-                router.post(url, editingProject, {
-                  onSuccess: () => setEditingProject(null),
-                });
+                try {
+                  if (window.__inertia_router) {
+                    window.__inertia_router.post(url, editingProject, {
+                      onSuccess: () => setEditingProject(null),
+                    });
+                  }
+                } catch {}
               }}
               className="space-y-3 text-xs font-mono"
             >
@@ -1669,9 +1765,19 @@ export default function Dashboard({
               onSubmit={(e) => {
                 e.preventDefault();
                 playUiClick();
-                router.post(`/admin/services/save/${editingService.id}`, editingService, {
-                  onSuccess: () => setEditingService(null),
-                });
+                if (onSaveService) {
+                  onSaveService(editingService);
+                  setNotification(`Service ${editingService.title} saved!`);
+                  setEditingService(null);
+                  return;
+                }
+                try {
+                  if (window.__inertia_router) {
+                    window.__inertia_router.post(`/admin/services/save/${editingService.id}`, editingService, {
+                      onSuccess: () => setEditingService(null),
+                    });
+                  }
+                } catch {}
               }}
               className="space-y-3 text-xs font-mono"
             >

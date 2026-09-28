@@ -107,10 +107,16 @@ export default function Navbar({ studioInfo }) {
 
             {/* Admin Dashboard Portal Link */}
             <a
-              href="/admin"
-              onClick={() => playUiClick()}
+              href="#admin"
+              onClick={() => {
+                playUiClick();
+                if (typeof window !== 'undefined') {
+                  window.location.hash = 'admin';
+                  window.dispatchEvent(new HashChangeEvent('hashchange'));
+                }
+              }}
               title="Open Lab AR Admin Dashboard"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-mono transition-all shadow-sm shadow-purple-500/10"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-mono transition-all shadow-sm shadow-purple-500/10 cursor-pointer"
             >
               <Terminal className="w-3.5 h-3.5 text-purple-400" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -159,6 +165,21 @@ export default function Navbar({ studioInfo }) {
               </a>
             ))}
             <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
+              <a
+                href="#admin"
+                onClick={() => {
+                  playUiClick();
+                  setMobileMenuOpen(false);
+                  if (typeof window !== 'undefined') {
+                    window.location.hash = 'admin';
+                    window.dispatchEvent(new HashChangeEvent('hashchange'));
+                  }
+                }}
+                className="w-full text-center py-2.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono text-xs font-semibold flex items-center justify-center gap-2"
+              >
+                <Terminal className="w-4 h-4 text-purple-400" />
+                <span>⚡ Open Admin Dashboard</span>
+              </a>
               <a
                 href="#contact"
                 onClick={() => {

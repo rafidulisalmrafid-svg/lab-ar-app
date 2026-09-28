@@ -65,7 +65,20 @@ export default function Footer({ studioInfo }) {
               <li><a href="#clients" className="hover:text-cyan-300 transition-colors">Completed Clients</a></li>
               <li><a href="#estimator" className="hover:text-cyan-300 transition-colors">Project Estimator</a></li>
               <li><a href="#contact" className="hover:text-cyan-300 transition-colors">ICT Tower Location</a></li>
-              <li><a href="/admin" className="text-purple-400 hover:text-purple-300 font-mono font-medium transition-colors">⚡ Admin Dashboard</a></li>
+              <li>
+                <a
+                  href="#admin"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.location.hash = 'admin';
+                      window.dispatchEvent(new HashChangeEvent('hashchange'));
+                    }
+                  }}
+                  className="text-purple-400 hover:text-purple-300 font-mono font-medium transition-colors cursor-pointer"
+                >
+                  ⚡ Admin Dashboard
+                </a>
+              </li>
             </ul>
           </div>
 
