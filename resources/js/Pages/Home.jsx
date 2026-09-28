@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { Head } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+
+// Universal Head component that manages document title seamlessly
+const Head = ({ title }) => {
+  useEffect(() => {
+    if (title && typeof document !== 'undefined') {
+      document.title = title;
+    }
+  }, [title]);
+  return null;
+};
 import Navbar from '../Components/Navbar';
 import ThreeBackground from '../Components/ThreeBackground';
 import Hero from '../Components/Hero';
